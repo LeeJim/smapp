@@ -1,7 +1,7 @@
 {
 	"name": "smapp",
 	"displayName": "smapp",
-	"description": "for wechat minapp develop",
+	"description": "for wechat miniapp develop",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.35.0"
@@ -10,17 +10,14 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:extension.helloWorld"
+		"*"
 	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "extension.helloWorld",
-				"title": "Hello World"
-			}
-		]
+	"main": "./out/src/extension.js",
+	"contributes": {},
+	"repository": {
+		"url": "https://github.com/LeeJim/smapp"
 	},
+	"icon": "images/icon.png",
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
@@ -29,10 +26,19 @@
 		"test": "npm run compile && node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
-		"typescript": "^3.3.1",
-		"vscode": "^1.1.28",
-		"tslint": "^5.12.1",
+		"@types/css": "0.0.31",
+		"@types/lodash": "^4.14.134",
+		"@types/mocha": "^2.2.42",
 		"@types/node": "^10.12.21",
-		"@types/mocha": "^2.2.42"
+		"@types/verror": "^1.10.3",
+		"tslint": "^5.12.1",
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28"
+	},
+	"dependencies": {
+		"css": "^2.2.4",
+		"lodash": "^4.17.11",
+		"verror": "^1.10.0",
+		"vscode-uri": "^2.0.2"
 	}
 }
