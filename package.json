@@ -3,6 +3,7 @@
 	"displayName": "smapp",
 	"description": "for wechat miniapp develop",
 	"version": "0.0.1",
+	"publisher": "leejimqiu",
 	"engines": {
 		"vscode": "^1.35.0"
 	},
@@ -39,6 +40,7 @@
 		"css": "^2.2.4",
 		"lodash": "^4.17.11",
 		"verror": "^1.10.0",
+		"vsce": "^1.64.0",
 		"vscode-uri": "^2.0.2"
 	}
 }
