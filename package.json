@@ -2,7 +2,7 @@
 	"name": "smapp",
 	"displayName": "smapp",
 	"description": "for wechat miniapp develop",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "leejimqiu",
 	"engines": {
 		"vscode": "^1.35.0"
@@ -14,7 +14,15 @@
 		"*"
 	],
 	"main": "./out/src/extension.js",
-	"contributes": {},
+	"contributes": {
+		"commands": [
+			{
+				"command": "smapp.cache",
+				"title": "cache",
+				"category": "Smapp"
+			}
+		]
+	},
 	"repository": {
 		"url": "https://github.com/LeeJim/smapp"
 	},
@@ -39,6 +47,7 @@
 	"dependencies": {
 		"css": "^2.2.4",
 		"lodash": "^4.17.11",
+		"source-map-support": "^0.5.12",
 		"verror": "^1.10.0",
 		"vsce": "^1.64.0",
 		"vscode-uri": "^2.0.2"

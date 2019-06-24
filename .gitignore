@@ -61,3 +61,5 @@ typings/
 .next
 
 out
+*.vsix
+package-lock.json

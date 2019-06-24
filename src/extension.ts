@@ -16,7 +16,7 @@ import ParseEngineGateway from "./parse-engine-gateway";
 
 const pushProto = Array.prototype.push;
 
-const notifier: Notifier = new Notifier("html-css-class-completion.cache");
+const notifier: Notifier = new Notifier("smapp.cache");
 let uniqueDefinitions: CssClassDefinition[] = [];
 let curFileDefinitions: CssClassDefinition[] = [];
 
@@ -31,8 +31,8 @@ async function cache(): Promise<void> {
         console.log("Looking for parseable documents...");
         const uris: Uri[] = await Fetcher.findAllParseableDocuments("**/app.wxss");
 
-        if (!uris || uris.length === 0 || uris.length > 1) {
-            console.log(uris.length ? "Too many app.wxss file" : "Found no documents");
+        if (!uris || uris.length === 0) {
+            console.log("Found no documents");
             notifier.statusBarItem.hide();
             return;
         }
@@ -61,12 +61,13 @@ async function cacheCurFileDef(uri: Uri): Promise<void> {
 
     pushProto.apply(definitions, await ParseEngineGateway.callParser(uri));
     curFileDefinitions = _.uniqBy(definitions, (def) => def.className);
+    console.log(curFileDefinitions.length, "unique CSS class definitions found");
     console.log("finish parsed:", uri.path);
 }
 
 function provideCompletionItemsGenerator(languageSelector: string, classMatchRegex: RegExp,
                                          classPrefix: string = "", splitChar: string = " ") {
-    return languages.registerCompletionItemProvider(languageSelector, {
+    return languages.registerCompletionItemProvider({ scheme: "file", language: languageSelector}, {
         provideCompletionItems(document: TextDocument, position: Position): CompletionItem[] {
             const start: Position = new Position(position.line, 0);
             const range: Range = new Range(start, position);
@@ -132,6 +133,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         const fileName: string = editor.document.fileName;
 
         if (fileName.endsWith(".wxml")) {
+
             const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
 
             cacheCurFileDef(curUri);
@@ -139,7 +141,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }
 
     if (window.activeTextEditor) {
-        beforeCache(window.activeTextEditor)
+        console.log("active text editor", window.activeTextEditor);
+        beforeCache(window.activeTextEditor);
     }
 
     window.onDidChangeActiveTextEditor(beforeCache, null, disposables);
@@ -171,4 +174,5 @@ export async function activate(context: ExtensionContext): Promise<void> {
 }
 
 export function deactivate(): void {
+    // empty
 }
