@@ -129,7 +129,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         }
     }));
 
-    function beforeCache(editor: TextEditor): void {
+    function detectActiveTextEditor(editor: TextEditor): void {
         const fileName: string = editor.document.fileName;
 
         if (fileName.endsWith(".wxml")) {
@@ -141,22 +141,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }
 
     if (window.activeTextEditor) {
-        console.log("active text editor", window.activeTextEditor);
-        beforeCache(window.activeTextEditor);
+        detectActiveTextEditor(window.activeTextEditor);
     }
 
-    window.onDidChangeActiveTextEditor(beforeCache, null, disposables);
-
-    workspace.onDidOpenTextDocument(async (e) => {
-        const fileName: string = e.fileName;
-        console.log(fileName);
-        if (fileName.endsWith(".wxml")) {
-            const definitions: CssClassDefinition[] = [];
-            const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
-
-            cacheCurFileDef(curUri);
-        }
-    }, null, disposables);
+    window.onDidChangeActiveTextEditor(detectActiveTextEditor, null, disposables);
 
     // HTML based extensions
     context.subscriptions.push(provideCompletionItemsGenerator("html", /class=["|']([\w- ]*$)/));
