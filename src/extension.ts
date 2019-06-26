@@ -4,9 +4,9 @@ import * as path from "path";
 import "source-map-support/register";
 import * as VError from "verror";
 import {
-    CancellationTokenSource, commands, CompletionItem, CompletionItemKind,
+    commands, CompletionItem, CompletionItemKind,
     Definition, Disposable, ExtensionContext, languages, Location, Position, Range,
-    TextDocument, TextEditor, Uri, window, workspace,
+    TextDocument, TextEditor, Uri, window,
 } from "vscode";
 import { URI } from "vscode-uri";
 import CssClassDefinition from "./common/css-class-definition";
@@ -108,8 +108,6 @@ function provideCompletionItemsGenerator(languageSelector: string, classMatchReg
     }, ...completionTriggerChars);
 }
 
-
-
 export async function activate(context: ExtensionContext): Promise<void> {
     const disposables: Disposable[] = [];
 
@@ -141,22 +139,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
             cacheCurrentEditor(curUri);
         }
-
-        if (fileName.endsWith(".js")) {
-            context.subscriptions.push(languages.registerDefinitionProvider({
-                language: "javascript",
-                scheme: "file",
-            }, {
-                provideDefinition(document: TextDocument, position: Position): Definition {
-                    const fileName = document.fileName;
-                    const workDir = path.dirname(fileName);
-                    const word = document.getText(document.getWordRangeAtPosition(position));
-
-                    console.log(word);
-                    return new Location(Uri.file(workDir), new Position(0, 0));
-                },
-            }));
-        }
     }
 
     if (window.activeTextEditor) {
@@ -167,6 +149,51 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
     // HTML based extensions
     context.subscriptions.push(provideCompletionItemsGenerator("html", /class=["|']([\w- ]*$)/));
+
+    // definition provider
+    context.subscriptions.push(languages.registerDefinitionProvider({
+        language: "javascript",
+        scheme: "file",
+    }, {
+        provideDefinition(document: TextDocument, position: Position): Definition {
+            const fileName: string = document.fileName;
+            const start: Position = new Position(position.line, 0);
+            const word: string = document.getText(document.getWordRangeAtPosition(position));
+            const text: string = document.getText(new Range(start, position));
+            const hint: boolean = /this\.\w+/.test(text);
+
+            if (!fileName.endsWith(".js") || word === "setData" || !hint) {
+                return null;
+            }
+
+            const file: string = document.getText();
+            const length: number = file.length;
+            let line: number = 0;
+            let column: number = 0;
+            let charIndex: number = 0;
+
+            for (let i = 0; i < length; i++) {
+                const char = file[i];
+                if (char === "\n") {
+                    line++;
+                    column = 0;
+                } else if (char === word.charAt(charIndex)) {
+                    if (charIndex === 0  && file[i - 1] !== "." || charIndex > 0) {
+                        charIndex++;
+                    } else {
+                        charIndex = 0;
+                    }
+                } else {
+                    charIndex = 0;
+                    column++;
+                }
+                if (charIndex === word.length - 1) {
+                    break;
+                }
+            }
+            return new Location(document.uri, new Position(line, column));
+        },
+    }));
 
     caching = true;
     try {
