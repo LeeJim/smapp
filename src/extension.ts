@@ -1,11 +1,12 @@
 // import * as Bluebird from "bluebird";
 import * as _ from "lodash";
+import * as path from "path";
 import "source-map-support/register";
 import * as VError from "verror";
 import {
-    commands, CompletionItem, CompletionItemKind, Disposable,
-    ExtensionContext, languages, Position, Range, TextDocument, TextEditor, Uri,
-    window, workspace,
+    CancellationTokenSource, commands, CompletionItem, CompletionItemKind,
+    Definition, Disposable, ExtensionContext, languages, Location, Position, Range,
+    TextDocument, TextEditor, Uri, window, workspace,
 } from "vscode";
 import { URI } from "vscode-uri";
 import CssClassDefinition from "./common/css-class-definition";
@@ -55,7 +56,7 @@ async function cache(): Promise<void> {
     }
 }
 
-async function cacheCurFileDef(uri: Uri): Promise<void> {
+async function cacheCurrentEditor(uri: Uri): Promise<void> {
     const definitions: CssClassDefinition[] = [];
     curFileDefinitions = []; // reset
 
@@ -107,6 +108,8 @@ function provideCompletionItemsGenerator(languageSelector: string, classMatchReg
     }, ...completionTriggerChars);
 }
 
+
+
 export async function activate(context: ExtensionContext): Promise<void> {
     const disposables: Disposable[] = [];
 
@@ -136,7 +139,23 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
             const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
 
-            cacheCurFileDef(curUri);
+            cacheCurrentEditor(curUri);
+        }
+
+        if (fileName.endsWith(".js")) {
+            context.subscriptions.push(languages.registerDefinitionProvider({
+                language: "javascript",
+                scheme: "file",
+            }, {
+                provideDefinition(document: TextDocument, position: Position): Definition {
+                    const fileName = document.fileName;
+                    const workDir = path.dirname(fileName);
+                    const word = document.getText(document.getWordRangeAtPosition(position));
+
+                    console.log(word);
+                    return new Location(Uri.file(workDir), new Position(0, 0));
+                },
+            }));
         }
     }
 
