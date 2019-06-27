@@ -2,28 +2,28 @@
 
 small + app = smapp
 
-vscode插件，for微信小程序
+微信小程序开发，VScode插件。提供一些日常开发需要的功能。
 
-## Features
+## 支持功能
 
-☑️ 在`*.wxml`智能提示可用的`className`（关联全局样式`app.wxss`和当前`wxml`对应的`wxss`)
+#### 智能类名提示
+在`wxml`输入`class="`智能提供当前可用的所有类名
+> 关联全局样式`app.wxss`和当前`wxml`对应的`wxss`
 
-☑️ 支持Page里this的`go to Definition`
+![ClassNameIntelliSense](http://img.africans.cn/ClassNameIntelliSense.gif)
 
-◻️ 在page输入this时，智能关联当前this指向的对象
+#### 支持跳转this调用的方法定义位置
 
-◻️ 增加全局对象`global`的IntelliSense
+![GoThisDefition](http://img.africans.cn/GoThisDefition.gif)
 
-## Extension Settings
+## 待支持功能
 
-empty for now
+- 在page输入this时，智能关联当前this指向的对象
 
-## Release Notes
+- 增加全局对象`global`的IntelliSense
 
-发布日志，后续更新的特性都会列在此处
+如果有什么想要的功能，可用给我提issue [Github](https://github.com/LeeJim/smapp/issues)
 
-### 0.0.1
+## 设置
 
-支持在`*.wxml`智能提示可用的`className`（关联全局样式`app.wxss`和当前`wxml`对应的`wxss`)
-
-**Enjoy!**
+暂无

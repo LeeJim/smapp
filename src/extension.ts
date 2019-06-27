@@ -162,7 +162,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             const text: string = document.getText(new Range(start, position));
             const hint: boolean = /this\.\w+/.test(text);
 
-            if (!fileName.endsWith(".js") || word === "setData" || !hint) {
+            if (!fileName.endsWith(".js") || !hint) {
                 return null;
             }
 
@@ -171,6 +171,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             let line: number = 0;
             let column: number = 0;
             let charIndex: number = 0;
+            let hasFound: boolean = false;
 
             for (let i = 0; i < length; i++) {
                 const char = file[i];
@@ -188,10 +189,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
                     column++;
                 }
                 if (charIndex === word.length - 1) {
+                    hasFound = true;
                     break;
                 }
             }
-            return new Location(document.uri, new Position(line, column));
+
+            return hasFound ? new Location(document.uri, new Position(line, column)) : null;
         },
     }));
 
