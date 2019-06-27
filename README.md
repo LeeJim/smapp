@@ -10,11 +10,11 @@ small + app = smapp
 在`wxml`输入`class="`智能提供当前可用的所有类名
 > 关联全局样式`app.wxss`和当前`wxml`对应的`wxss`
 
-![ClassNameIntelliSense](http://img.africans.cn/ClassNameIntelliSense.gif)
+![ClassNameIntelliSense](images/ClassNameIntelliSense.gif)
 
 #### 支持跳转this调用的方法定义位置
 
-![GoThisDefition](http://img.africans.cn/GoThisDefition.gif)
+![GoThisDefition](images/GoThisDefition.gif)
 
 ## 待支持功能
 
