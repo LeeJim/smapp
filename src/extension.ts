@@ -1,5 +1,6 @@
 // import * as Bluebird from "bluebird";
 import * as _ from "lodash";
+import * as fs from 'fs';
 import * as path from "path";
 import "source-map-support/register";
 import * as VError from "verror";
@@ -10,16 +11,21 @@ import {
 } from "vscode";
 import { URI } from "vscode-uri";
 import CssClassDefinition from "./common/css-class-definition";
+import JSDefinition from './common/js-definition';
 import CssClassesStorage from "./css-classes-storage";
 import Fetcher from "./fetcher";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
+import { fstat } from "fs";
+
+const esprima = require("esprima");
 
 const pushProto = Array.prototype.push;
 
 const notifier: Notifier = new Notifier("smapp.cache");
 let uniqueDefinitions: CssClassDefinition[] = [];
 let curFileDefinitions: CssClassDefinition[] = [];
+let jsFileDefinitions = new Map();
 
 const completionTriggerChars = ['"', "'", " ", "."];
 
@@ -73,7 +79,7 @@ function provideCompletionItemsGenerator(languageSelector: string, classMatchReg
             const start: Position = new Position(position.line, 0);
             const range: Range = new Range(start, position);
             const text: string = document.getText(range);
-
+ 
             // Check if the cursor is on a class attribute and retrieve all the css rules in this class attribute
             const rawClasses: RegExpMatchArray = text.match(classMatchRegex);
             if (!rawClasses || rawClasses.length === 1) {
@@ -132,12 +138,16 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
     function detectActiveTextEditor(editor: TextEditor): void {
         const fileName: string = editor.document.fileName;
+        const isWXMLFile: Boolean = fileName.endsWith(".wxml");
 
-        if (fileName.endsWith(".wxml")) {
-
+        if (isWXMLFile) {
             const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
-
             cacheCurrentEditor(curUri);
+        }
+
+        if (isWXMLFile || fileName.endsWith(".js")) {
+            const uri: Uri = URI.file(fileName.replace(".wxml", ".js"));
+            saveJSFileToken(uri);
         }
     }
 
@@ -166,35 +176,23 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 return null;
             }
 
-            const file: string = document.getText();
-            const length: number = file.length;
-            let line: number = 0;
-            let column: number = 0;
-            let charIndex: number = 0;
-            let hasFound: boolean = false;
-
-            for (let i = 0; i < length; i++) {
-                const char = file[i];
-                if (char === "\n") {
-                    line++;
-                    column = 0;
-                } else if (char === word.charAt(charIndex)) {
-                    if (charIndex === 0  && file[i - 1] !== "." || charIndex > 0) {
-                        charIndex++;
-                    } else {
-                        charIndex = 0;
-                    }
-                } else {
-                    charIndex = 0;
-                    column++;
-                }
-                if (charIndex === word.length - 1) {
-                    hasFound = true;
-                    break;
-                }
+            if (!jsFileDefinitions.has(document.fileName)) {
+                return null;
             }
 
-            return hasFound ? new Location(document.uri, new Position(line, column)) : null;
+            const definitions = jsFileDefinitions.get(document.fileName)
+
+            for (let i = 0; i < definitions.length; i++) {
+                let item = definitions[i];
+                if (item.value === word) {
+                    let prev = definitions[i - 1];
+                    
+                    if (prev.type == 'Punctuator' && prev.value === ',') {
+                        const pos = item.loc.start;
+                        return new Location(document.uri, new Position(pos.line - 1, pos.column));
+                    }
+                }
+            }
         },
     }));
 
@@ -212,4 +210,16 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 export function deactivate(): void {
     // empty
+}
+
+function saveJSFileToken(uri: Uri) {
+    let hasCache = jsFileDefinitions.has(uri.path);
+    if (hasCache) return;
+
+    let ct = fs.readFileSync(uri.path, { encoding: 'utf-8'});
+    let identifiers = esprima.tokenize(ct, { loc: true })
+    // let identifiers = res.filter((item: any) => item.type === 'Identifier');
+    
+    jsFileDefinitions.set(uri.path, identifiers);
+    console.log(`finish cache file:${uri.path}`);
 }
