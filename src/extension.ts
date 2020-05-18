@@ -1,31 +1,29 @@
 // import * as Bluebird from "bluebird";
+import * as esprima from "esprima";
+import * as fs from "fs";
 import * as _ from "lodash";
-import * as fs from 'fs';
-import * as path from "path";
 import "source-map-support/register";
 import * as VError from "verror";
 import {
     commands, CompletionItem, CompletionItemKind,
     Definition, Disposable, ExtensionContext, languages, Location, Position, Range,
-    TextDocument, TextEditor, Uri, window,
+    TextDocument, TextEditor, Uri, window, workspace,
 } from "vscode";
+import * as vscode from "vscode";
 import { URI } from "vscode-uri";
 import CssClassDefinition from "./common/css-class-definition";
-import JSDefinition from './common/js-definition';
+import JSDefinition from "./common/js-definition";
 import CssClassesStorage from "./css-classes-storage";
 import Fetcher from "./fetcher";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
-import { fstat } from "fs";
-
-const esprima = require("esprima");
 
 const pushProto = Array.prototype.push;
 
 const notifier: Notifier = new Notifier("smapp.cache");
 let uniqueDefinitions: CssClassDefinition[] = [];
 let curFileDefinitions: CssClassDefinition[] = [];
-let jsFileDefinitions = new Map();
+const jsFileDefinitions = new Map();
 
 const completionTriggerChars = ['"', "'", " ", "."];
 
@@ -79,7 +77,7 @@ function provideCompletionItemsGenerator(languageSelector: string, classMatchReg
             const start: Position = new Position(position.line, 0);
             const range: Range = new Range(start, position);
             const text: string = document.getText(range);
- 
+
             // Check if the cursor is on a class attribute and retrieve all the css rules in this class attribute
             const rawClasses: RegExpMatchArray = text.match(classMatchRegex);
             if (!rawClasses || rawClasses.length === 1) {
@@ -137,8 +135,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }));
 
     function detectActiveTextEditor(editor: TextEditor): void {
+        console.log(editor.document);
+
         const fileName: string = editor.document.fileName;
-        const isWXMLFile: Boolean = fileName.endsWith(".wxml");
+        const isWXMLFile: boolean = fileName.endsWith(".wxml");
+
+        console.log(fileName);
 
         if (isWXMLFile) {
             const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
@@ -165,7 +167,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         language: "javascript",
         scheme: "file",
     }, {
-        provideDefinition(document: TextDocument, position: Position): Definition {
+        provideDefinition(document: TextDocument, position: Position): Location {
             const fileName: string = document.fileName;
             const start: Position = new Position(position.line, 0);
             const word: string = document.getText(document.getWordRangeAtPosition(position));
@@ -180,19 +182,52 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 return null;
             }
 
-            const definitions = jsFileDefinitions.get(document.fileName)
+            const definitions = jsFileDefinitions.get(document.fileName);
 
             for (let i = 0; i < definitions.length; i++) {
-                let item = definitions[i];
+                const item = definitions[i];
                 if (item.value === word) {
-                    let prev = definitions[i - 1];
-                    
-                    if (prev.type == 'Punctuator' && prev.value === ',') {
+                    const prev = definitions[i - 1];
+
+                    if (prev.type === "Punctuator" && (prev.value === "," || prev.value === "{")) {
                         const pos = item.loc.start;
                         return new Location(document.uri, new Position(pos.line - 1, pos.column));
                     }
                 }
             }
+            return null;
+        },
+    }));
+
+    // definition provider
+    context.subscriptions.push(languages.registerDefinitionProvider({
+        pattern: "**/*.wxml",
+        scheme: "file",
+    }, {
+        async provideDefinition(document: TextDocument, position: Position): Promise<Location> {
+            const fileName: string = document.fileName;
+            const start: Position = new Position(position.line, 0);
+            const word: string = document.getText(document.getWordRangeAtPosition(position));
+            const jsDoc: TextDocument = await workspace.openTextDocument(fileName.replace(".wxml", ".js"));
+
+            if (!jsFileDefinitions.has(jsDoc.fileName)) {
+                return null;
+            }
+
+            const definitions = jsFileDefinitions.get(jsDoc.fileName);
+
+            for (let i = 0; i < definitions.length; i++) {
+                const item = definitions[i];
+                if (item.value === word) {
+                    const prev = definitions[i - 1];
+
+                    if (prev.type === "Punctuator" && (prev.value === "," || prev.value === "{")) {
+                        const pos = item.loc.start;
+                        return new Location(jsDoc.uri, new Position(pos.line - 1, pos.column));
+                    }
+                }
+            }
+            return null;
         },
     }));
 
@@ -213,13 +248,18 @@ export function deactivate(): void {
 }
 
 function saveJSFileToken(uri: Uri) {
-    let hasCache = jsFileDefinitions.has(uri.path);
-    if (hasCache) return;
+    try {
+        const { fsPath } = uri;
+        const hasCache = jsFileDefinitions.has(fsPath);
+        if (hasCache) { return; }
 
-    let ct = fs.readFileSync(uri.path, { encoding: 'utf-8'});
-    let identifiers = esprima.tokenize(ct, { loc: true })
-    // let identifiers = res.filter((item: any) => item.type === 'Identifier');
-    
-    jsFileDefinitions.set(uri.path, identifiers);
-    console.log(`finish cache file:${uri.path}`);
+        const ct = fs.readFileSync(fsPath, { encoding: "utf-8"});
+        const identifiers = esprima.tokenize(ct, { loc: true });
+        // let identifiers = res.filter((item: any) => item.type === 'Identifier');
+
+        jsFileDefinitions.set(fsPath, identifiers);
+        console.log(`finish cache file:${fsPath}`);
+    } catch (e) {
+        console.log(e.message);
+    }
 }

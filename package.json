@@ -6,7 +6,13 @@
 	"publisher": "leejimqiu",
 	"engines": {
 		"vscode": "^1.35.0"
-	},
+    },
+    "keywords": [
+        "小程序",
+        "微信",
+        "wechat",
+        "weixin"
+    ],
 	"categories": [
 		"Other"
 	],
@@ -31,7 +37,6 @@
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install",
 		"test": "npm run compile && node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
@@ -45,6 +50,7 @@
 		"vscode": "^1.1.28"
 	},
 	"dependencies": {
+		"@types/esprima": "^4.0.2",
 		"css": "^2.2.4",
 		"esprima": "^4.0.1",
 		"lodash": "^4.17.11",

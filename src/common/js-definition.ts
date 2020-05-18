@@ -7,6 +7,7 @@ export interface IPosition {
 
 export interface ILocation {
     start: IPosition;
+    end: IPosition;
 }
 
 class JSDefinition {
