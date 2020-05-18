@@ -140,8 +140,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
         const fileName: string = editor.document.fileName;
         const isWXMLFile: boolean = fileName.endsWith(".wxml");
 
-        console.log(fileName);
-
         if (isWXMLFile) {
             const curUri: Uri = URI.file(fileName.replace(".wxml", ".wxss"));
             cacheCurrentEditor(curUri);
@@ -183,18 +181,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
             }
 
             const definitions = jsFileDefinitions.get(document.fileName);
+            const target = definitions.find((item: any) => item.value === word);
 
-            for (let i = 0; i < definitions.length; i++) {
-                const item = definitions[i];
-                if (item.value === word) {
-                    const prev = definitions[i - 1];
-
-                    if (prev.type === "Punctuator" && (prev.value === "," || prev.value === "{")) {
-                        const pos = item.loc.start;
-                        return new Location(document.uri, new Position(pos.line - 1, pos.column));
-                    }
-                }
+            if (target) {
+                console.log("found");
+                const pos = target.loc.start;
+                return new Location(document.uri, new Position(pos.line - 1, pos.column));
             }
+            console.log("not found");
+
             return null;
         },
     }));
@@ -208,25 +203,22 @@ export async function activate(context: ExtensionContext): Promise<void> {
             const fileName: string = document.fileName;
             const start: Position = new Position(position.line, 0);
             const word: string = document.getText(document.getWordRangeAtPosition(position));
-            const jsDoc: TextDocument = await workspace.openTextDocument(fileName.replace(".wxml", ".js"));
+            const jsUri: Uri = URI.file(fileName.replace(".wxml", ".js"));
 
-            if (!jsFileDefinitions.has(jsDoc.fileName)) {
+            if (!jsFileDefinitions.has(jsUri.fsPath)) {
                 return null;
             }
 
-            const definitions = jsFileDefinitions.get(jsDoc.fileName);
+            const definitions = jsFileDefinitions.get(jsUri.fsPath);
+            const target = definitions.find((item: any) => item.value === word);
 
-            for (let i = 0; i < definitions.length; i++) {
-                const item = definitions[i];
-                if (item.value === word) {
-                    const prev = definitions[i - 1];
-
-                    if (prev.type === "Punctuator" && (prev.value === "," || prev.value === "{")) {
-                        const pos = item.loc.start;
-                        return new Location(jsDoc.uri, new Position(pos.line - 1, pos.column));
-                    }
-                }
+            if (target) {
+                console.log("found");
+                const pos = target.loc.start;
+                return new Location(jsUri, new Position(pos.line - 1, pos.column));
             }
+            console.log("not found");
+
             return null;
         },
     }));
@@ -254,8 +246,12 @@ function saveJSFileToken(uri: Uri) {
         if (hasCache) { return; }
 
         const ct = fs.readFileSync(fsPath, { encoding: "utf-8"});
-        const identifiers = esprima.tokenize(ct, { loc: true });
-        // let identifiers = res.filter((item: any) => item.type === 'Identifier');
+        const res = esprima.tokenize(ct, { loc: true });
+        const identifiers = res.filter((item: any, index: number, arr) => {
+            const prev = arr[index - 1];
+            const prevIsRight = index > 0 && prev.type === "Punctuator" && (prev.value === "," || prev.value === "{");
+            return prevIsRight && item.type === "Identifier";
+        });
 
         jsFileDefinitions.set(fsPath, identifiers);
         console.log(`finish cache file:${fsPath}`);

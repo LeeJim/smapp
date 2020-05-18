@@ -1,8 +1,8 @@
 {
 	"name": "smapp",
 	"displayName": "smapp",
-	"description": "for wechat miniapp develop",
-	"version": "0.0.4",
+	"description": "小程序开发助手",
+	"version": "0.0.5",
 	"publisher": "leejimqiu",
 	"engines": {
 		"vscode": "^1.35.0"
